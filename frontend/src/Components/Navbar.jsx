@@ -33,9 +33,10 @@ function Navbar(props) {
     <div>
       <nav>
         {/* Replacing logo image with the brand title */}
-        <div className="brand-title">
+        <a href="/" className="brand-title">
           E-learning Platform
-        </div>
+        </a>
+
 
         <div className="navigation">
           <div id="menu-btn">
