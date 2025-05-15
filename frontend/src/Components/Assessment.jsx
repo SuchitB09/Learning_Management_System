@@ -1,335 +1,270 @@
-import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { faBackward } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Modal, Button } from "antd";
-import axios from "axios";
-import styled from "styled-components";
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { faBackward } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Modal } from 'antd';
+import axios from 'axios';
 
 function YourComponent() {
   const location = useLocation();
   const navigate = useNavigate();
   const courseId = location.pathname.split("/")[2];
   const [test, setTest] = useState([]);
-  const [userId, setUserId] = useState(localStorage.getItem("id"));
+  const [userId] = useState(localStorage.getItem("id"));
   const [selectedAnswers, setSelectedAnswers] = useState([]);
   const [correctCount, setCorrectCount] = useState(0);
   const [openModal, setOpenModal] = useState(false);
-  const [totalQsns, SetTotalQsns] = useState(0);
-  
-  // Timer States
-  const [timeLeft, setTimeLeft] = useState(0); // Time left in seconds
-  const [isTimerActive, setIsTimerActive] = useState(false); // To start and stop the timer
-  const [startClicked, setStartClicked] = useState(false); // Track if start was clicked
+  const [totalQsns, setTotalQsns] = useState(0);
+
+  const [started, setStarted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
 
   useEffect(() => {
     fetch(`http://localhost:8080/api/questions/${courseId}`)
-      .then((res) => res.json())
-      .then((res) => {
+      .then(res => res.json())
+      .then(res => {
         setTest(res);
-        SetTotalQsns(res.length);
-        setSelectedAnswers(new Array(res.length).fill(false));
+        setTotalQsns(res.length);
+        setSelectedAnswers(new Array(res.length).fill(null));
       })
-      .catch((error) => console.error("Error fetching data:", error));
+      .catch(error => console.error("Error fetching data:", error));
   }, [courseId]);
 
-  const handleRadioChange = (questionIndex, selectedOption) => {
-    const updatedSelectedAnswers = [...selectedAnswers];
-    const qsn = test[questionIndex];
-    if (qsn.answer === selectedOption) {
-      setCorrectCount(correctCount + 1);
-      updatedSelectedAnswers[questionIndex] = true;
-    } else if (updatedSelectedAnswers[questionIndex] === true) {
-      setCorrectCount(correctCount - 1);
-      updatedSelectedAnswers[questionIndex] = false;
+  useEffect(() => {
+    let timer;
+    if (started && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    } else if (started && timeLeft === 0) {
+      setOpenModal(true);
     }
-    setSelectedAnswers(updatedSelectedAnswers);
+    return () => clearInterval(timer);
+  }, [started, timeLeft]);
+
+  const formatTime = (secs) => {
+    const minutes = Math.floor(secs / 60);
+    const seconds = secs % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
+
+  const handleStartQuiz = () => {
+    setStarted(true);
+  };
+
+  const handleCheckboxChange = (questionIndex, selectedOption) => {
+    if (!started || timeLeft <= 0) return;
+
+    const updatedAnswers = [...selectedAnswers];
+    const qsn = test[questionIndex];
+    const alreadyCorrect = updatedAnswers[questionIndex] === qsn.answer;
+
+    updatedAnswers[questionIndex] = selectedOption;
+
+    const nowCorrect = selectedOption === qsn.answer;
+
+    if (!alreadyCorrect && nowCorrect) {
+      setCorrectCount(prev => prev + 1);
+    } else if (alreadyCorrect && !nowCorrect) {
+      setCorrectCount(prev => prev - 1);
+    }
+
+    setSelectedAnswers(updatedAnswers);
   };
 
   const handleMarks = () => {
     const data = {
-      courseId: courseId,
-      userId: localStorage.getItem("id"),
-      marks: (correctCount / totalQsns) * 100,
+      courseId,
+      userId,
+      marks: (correctCount / totalQsns) * 100
     };
-    axios
-      .post(`http://localhost:8080/api/assessments/add/${userId}/${courseId}`, data)
-      .then((response) => {
-        console.log("Request successful:", response.data);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-      });
+    axios.post(`http://localhost:8080/api/assessments/add/${userId}/${courseId}`, data)
+      .then(response => console.log('Request successful:', response.data))
+      .catch(error => console.error('Error:', error));
   };
 
-  const showModal = () => {
-    setOpenModal(true);
+  const handleSubmit = () => {
+    if (window.confirm("Are you sure you want to submit the test?")) {
+      handleMarks();
+      setOpenModal(true);
+    }
   };
 
-  const handleOk = () => {
-    setOpenModal(false);
-  };
+  const handleOk = () => setOpenModal(false);
+  const handleCancel = () => setOpenModal(false);
 
-  const handleCancel = () => {
-    setOpenModal(false);
-  };
-
-  let message = "";
+  let message = '';
   if (correctCount === 5) {
-    message = "Awesome 😎";
+    message = 'Awesome 😎';
   } else if (correctCount >= 3) {
-    message = "Good 😊";
+    message = 'Good 😊';
   } else {
-    message = "Poor 😒";
+    message = 'Poor 😒';
   }
 
-  // Timer Effect - starts countdown when the quiz starts
-  useEffect(() => {
-    let timer;
-    if (isTimerActive) {
-      timer = setInterval(() => {
-        setTimeLeft((prevTime) => {
-          if (prevTime <= 0) {
-            clearInterval(timer); // Stop the timer when it reaches 0
-            return 0;
-          }
-          return prevTime - 1;
-        });
-      }, 1000); // Update every second
-    }
-    return () => clearInterval(timer); // Clean up interval on unmount
-  }, [isTimerActive]);
-
-  // Start the quiz and timer
-  const handleStart = () => {
-    setStartClicked(true);
-    setTimeLeft(5 * 60); // Set timer to 5 minutes (300 seconds)
-    setIsTimerActive(true);
-  };
-
-  // Format time to MM:SS
-  const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = timeInSeconds % 60;
-    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  };
-
   return (
-    <QuizContainer>
-      <Header>
-        <BackButton onClick={() => navigate(`/course/${courseId}`)}>
-          <FontAwesomeIcon icon={faBackward} /> Back
-        </BackButton>
-        <QuizTitle>Assessment Questions</QuizTitle>
-      </Header>
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <button
+          type="button"
+          style={styles.backButton}
+          onClick={() => navigate(`/course/${courseId}`)}
+        >
+          <FontAwesomeIcon icon={faBackward} />
+        </button>
+        <h1 style={styles.title}>Assessment</h1>
+      </div>
 
-      <TimerSection>
-        {!startClicked ? (
-          <StartButton onClick={handleStart}>Start Quiz</StartButton>
-        ) : (
-          <TimerDisplay>{formatTime(timeLeft)}</TimerDisplay>
-        )}
-      </TimerSection>
+      {!started ? (
+        <div style={styles.centered}>
+          <button style={styles.startButton} onClick={handleStartQuiz}>
+            Start Quiz
+          </button>
+        </div>
+      ) : (
+        <div style={styles.timer}>
+          Time Left: <span style={{ color: 'red' }}>{formatTime(timeLeft)}</span>
+        </div>
+      )}
 
-      <QuizForm>
-        {test.map((question, index) => (
-          <QuestionCard key={question.no}>
+      <div style={{ marginTop: 20 }}>
+        {started && test.map((question, index) => (
+          <div key={question.no} style={styles.questionCard}>
             <h3>{question.question}</h3>
-            <Option>
-              <input
-                type="radio"
-                name={`question_${question.no}`}
-                value={question.option1}
-                onChange={() => handleRadioChange(index, question.option1)}
-              />
-              {question.option1}
-            </Option>
-            <Option>
-              <input
-                type="radio"
-                name={`question_${question.no}`}
-                value={question.option2}
-                onChange={() => handleRadioChange(index, question.option2)}
-              />
-              {question.option2}
-            </Option>
-            <Option>
-              <input
-                type="radio"
-                name={`question_${question.no}`}
-                value={question.option3}
-                onChange={() => handleRadioChange(index, question.option3)}
-              />
-              {question.option3}
-            </Option>
-            <Option>
-              <input
-                type="radio"
-                name={`question_${question.no}`}
-                value={question.option4}
-                onChange={() => handleRadioChange(index, question.option4)}
-              />
-              {question.option4}
-            </Option>
-          </QuestionCard>
+            {[question.option1, question.option2, question.option3, question.option4].map((option, i) => (
+              <label key={i} style={styles.optionLabel}>
+                <input
+                  type="checkbox"
+                  name={`question_${question.no}`}
+                  value={option}
+                  checked={selectedAnswers[index] === option}
+                  onChange={() => handleCheckboxChange(index, option)}
+                  disabled={timeLeft <= 0}
+                  style={{ marginRight: '8px' }}
+                />
+                {option}
+              </label>
+            ))}
+          </div>
         ))}
 
-        <ButtonSection>
-          <ResetButton onClick={() => navigate(0)}>Reset</ResetButton>
-          <SubmitButton
-            onClick={() => {
-              handleMarks();
-              setOpenModal(true);
-              setIsTimerActive(false); // Stop the timer when submitting
-            }}
-          >
-            Submit
-          </SubmitButton>
-        </ButtonSection>
-      </QuizForm>
+        {started && (
+          <div style={{ textAlign: 'center', marginTop: 20 }}>
+            <button
+              onClick={() => navigate(0)}
+              style={{ ...styles.button, backgroundColor: '#999' }}
+            >
+              Reset
+            </button>
+            <button
+              onClick={handleSubmit}
+              style={styles.button}
+              disabled={timeLeft === 0}
+            >
+              Submit
+            </button>
+          </div>
+        )}
+      </div>
 
       <Modal
+        id="poppup"
         open={openModal}
         onOk={handleOk}
         onCancel={handleCancel}
-        title="Assessment Result"
-        centered
-        width={400}
-        style={{ padding: "20px", textAlign: "center" }}
+        footer={null}
+        style={{ padding: "10px" }}
       >
-        <h2>{message}</h2>
-        <h3>You scored {(correctCount / totalQsns) * 100}%</h3>
+        <div style={styles.resultCard}>
+          <h2 style={{ color: 'darkblue' }}>Assessment Result</h2>
+          <h1 style={{ textAlign: "center" }}>{message}</h1>
+          <h3 style={{ textAlign: 'center' }}>
+            You scored {(correctCount / totalQsns * 100).toFixed(2)}%
+          </h3>
+          <p style={{ textAlign: 'center', marginTop: '15px', fontWeight: 'bold' }}>
+            🎉 Thank you for taking the test!
+          </p>
+        </div>
       </Modal>
-    </QuizContainer>
+    </div>
   );
 }
 
+// Inline Styles
+const styles = {
+  container: {
+    padding: "20px",
+    maxWidth: "900px",
+    margin: "auto",
+    fontFamily: "'Segoe UI', sans-serif"
+  },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    marginBottom: "20px"
+  },
+  backButton: {
+    background: "none",
+    border: "none",
+    color: "darkblue",
+    fontSize: "24px",
+    cursor: "pointer",
+    marginRight: "10px"
+  },
+  title: {
+    flexGrow: 1,
+    textAlign: "center",
+    backgroundColor: "darkblue",
+    color: "white",
+    padding: "10px 20px",
+    borderRadius: "20px"
+  },
+  centered: {
+    textAlign: "center",
+    marginTop: "40px"
+  },
+  startButton: {
+    padding: "10px 30px",
+    fontSize: "18px",
+    backgroundColor: "darkblue",
+    color: "white",
+    border: "none",
+    borderRadius: "20px",
+    cursor: "pointer"
+  },
+  timer: {
+    textAlign: "center",
+    fontSize: "20px",
+    marginTop: "10px"
+  },
+  questionCard: {
+    backgroundColor: "#f9f9f9",
+    border: "1px solid #ddd",
+    borderRadius: "12px",
+    padding: "15px",
+    marginBottom: "20px",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.1)"
+  },
+  optionLabel: {
+    display: "block",
+    marginBottom: "8px",
+    fontSize: "16px"
+  },
+  button: {
+    backgroundColor: "green",
+    color: "white",
+    padding: "10px 20px",
+    margin: "0 10px",
+    border: "none",
+    borderRadius: "20px",
+    fontSize: "16px",
+    cursor: "pointer"
+  },
+  resultCard: {
+    padding: "10px",
+    borderRadius: "12px",
+    textAlign: "center"
+  }
+};
+
 export default YourComponent;
-
-// Styled Components
-
-const QuizContainer = styled.div`
-  font-family: Arial, sans-serif;
-  background-color: #f5f5f5;
-  padding: 30px;
-  max-width: 800px;
-  margin: 0 auto;
-  border-radius: 10px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-`;
-
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-`;
-
-const BackButton = styled.button`
-  background-color: #007bff;
-  color: white;
-  padding: 10px 20px;
-  font-size: 1rem;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  &:hover {
-    background-color: #0056b3;
-  }
-`;
-
-const QuizTitle = styled.h1`
-  background-color: #007bff;
-  color: white;
-  padding: 15px 30px;
-  font-size: 1.5rem;
-  border-radius: 25px;
-  text-align: center;
-  margin: 0 auto;
-`;
-
-const TimerSection = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-`;
-
-const StartButton = styled.button`
-  background-color: #4caf50;
-  color: white;
-  padding: 10px 20px;
-  font-size: 1rem;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-  &:hover {
-    background-color: #388e3c;
-  }
-`;
-
-const TimerDisplay = styled.div`
-  font-size: 2rem;
-  color: #e53935;
-  font-weight: bold;
-`;
-
-const QuizForm = styled.div`
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-`;
-
-const QuestionCard = styled.div`
-  background-color: #fff0e6;
-  padding: 15px;
-  margin: 10px 0;
-  border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-`;
-
-const Option = styled.label`
-  display: block;
-  margin: 10px 0;
-  font-size: 1rem;
-  input {
-    margin-right: 10px;
-  }
-`;
-
-const ButtonSection = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-top: 30px;
-`;
-
-const ResetButton = styled.button`
-  background-color: #f44336;
-  color: white;
-  padding: 10px 20px;
-  font-size: 1rem;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-  width: 48%;
-  &:hover {
-    background-color: #d32f2f;
-  }
-`;
-
-const SubmitButton = styled.button`
-  background-color: #4caf50;
-  color: white;
-  padding: 10px 20px;
-  font-size: 1rem;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-  width: 48%;
-  &:hover {
-    background-color: #388e3c;
-  }
-`;

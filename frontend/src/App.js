@@ -22,11 +22,12 @@ import ErrorPage from './Components/ErrorPage';
 import AddQuestions from './Components/AddQuestions';
 import Performance from './Components/DashBoard/Performance';
 import DTutors from './Components/DashBoard/DTutors';
-import certificate from './Components/certificate';
+
 import Forum from './Components/forum';
 import AdminLogin from './Components/AdminLogin';
 import AdminFeedback from "./Components/DashBoard/AdminFeedback";
 import AdminDoubts from './Components/DashBoard/AdminDoubts';
+import Certificate from './Components/certificate';
 
 // Load Stripe
 const stripePromise = loadStripe('pk_test_51RB7f12LxQ1Ebpbh2DwKmKUHOAFGSk6KmKKdHGsdGSfZyL68jrmRCQkTkiyme2WvvWDMgzgcrm27VWou8GQpRkbd00Kc08OhM5'); // Replace with your actual public key
@@ -44,7 +45,7 @@ function App() {
             <Route path='/courses' element={<Courses />} />
             <Route path='/course/:id' element={<Course />} />
             <Route path='/discussion/:id' element={<Forum />} />
-            <Route path='/certificate/:id' element={<certificate />} />
+            <Route path='/certificate/:id' element={<Certificate />} />
             <Route path='/assessment/:id' element={<Assessment />} />
             <Route path='/addcourse' element={<AddCourse />} />
             <Route path='/editCourse/:id' element={<EditCourse />} />

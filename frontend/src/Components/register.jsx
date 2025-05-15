@@ -5,7 +5,9 @@ import Navbar from "./Navbar";
 function RegistrationForm() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [phoneError, setPhoneError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [genderError, setGenderError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [nameError, setNameError] = useState("");
@@ -30,8 +32,9 @@ function RegistrationForm() {
       } else {
         setNameError("");
       }
-      setFormData({ ...formData, [name]: value });
-    } else if (name === "phno") {
+    }
+
+    if (name === "phno") {
       const cleanedValue = value.replace(/\D/g, "");
       if (!/^[6-9]\d{9}$/.test(cleanedValue)) {
         setPhoneError("Phone number must be 10 digits and start with 6-9.");
@@ -39,20 +42,25 @@ function RegistrationForm() {
         setPhoneError("");
       }
       setFormData({ ...formData, [name]: cleanedValue });
-    } else if (name === "password") {
-      const password = value;
+      return;
+    }
+
+    if (name === "email") {
+      setEmailError(""); // reset on change
+    }
+
+    if (name === "password") {
       const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@])[A-Za-z\d@]{8,12}$/;
-      if (!passwordRegex.test(password)) {
+      if (!passwordRegex.test(value)) {
         setPasswordError(
           "Password must be 8–12 characters and include '@', letters, and numbers."
         );
       } else {
         setPasswordError("");
       }
-      setFormData({ ...formData, [name]: password });
-    } else {
-      setFormData({ ...formData, [name]: value });
     }
+
+    setFormData({ ...formData, [name]: value });
   };
 
   const isValidDOB = (dob) => {
@@ -62,8 +70,8 @@ function RegistrationForm() {
     const monthDiff = today.getMonth() - dobDate.getMonth();
     const dayDiff = today.getDate() - dobDate.getDate();
 
-    if (age > 18) return true;
-    if (age === 18) {
+    if (age > 10) return true;
+    if (age === 10) {
       if (monthDiff > 0) return true;
       if (monthDiff === 0 && dayDiff >= 0) return true;
     }
@@ -73,9 +81,11 @@ function RegistrationForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
     setGenderError("");
     setPasswordError("");
     setNameError("");
+    setEmailError("");
 
     if (!/^[A-Za-z\s]+$/.test(formData.username)) {
       setNameError("Name should contain only letters and spaces.");
@@ -88,7 +98,7 @@ function RegistrationForm() {
     }
 
     if (!isValidDOB(formData.dob)) {
-      setError("You must be at least 18 years old.");
+      setError("You must be at least 10 years old.");
       return;
     }
 
@@ -112,11 +122,17 @@ function RegistrationForm() {
         body: JSON.stringify(formData),
       });
 
-      if (response.status === 200) {
-        console.log("Registration successful!");
-        navigate("/login");
+      const data = await response.json();
+
+      if (response.status === 409 || data.error?.toLowerCase().includes("email")) {
+        setEmailError("This email is already registered. Please use another.");
+        return;
+      }
+
+      if (response.status === 200 || response.status === 201) {
+        setSuccessMessage("User successfully registered! Redirecting to login...");
+        setTimeout(() => navigate("/login"), 2000);
       } else {
-        const data = await response.json();
         setError(data.error || "Registration failed.");
       }
     } catch (err) {
@@ -139,6 +155,14 @@ function RegistrationForm() {
     marginTop: "5px",
   };
 
+  const successTextStyle = {
+    color: "green",
+    fontSize: "15px",
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: "10px",
+  };
+
   return (
     <div>
       <Navbar />
@@ -153,34 +177,31 @@ function RegistrationForm() {
           overflowY: "auto",
         }}
       >
-        {/* All content inside this container */}
         <div
           className="registration-container"
           style={{
             maxWidth: "600px",
             width: "100%",
-            maxHeight: "50px",
             backgroundColor: "#fff",
             borderRadius: "12px",
             padding: "30px",
             boxShadow: "0 5px 15px rgba(0,0,0,0.1)",
-            display: "flow",
+            display: "flex",
             flexDirection: "column",
             gap: "10px",
           }}
         >
-          {/* Heading */}
           <h2 style={{ textAlign: "center", color: "#333", marginBottom: "20px" }}>
             User Registration
           </h2>
 
-          {/* Form */}
+          {successMessage && <div style={successTextStyle}>{successMessage}</div>}
+
           <form
             onSubmit={handleSubmit}
             className="registration-form"
             style={{ display: "flex", flexDirection: "column", gap: "16px" }}
           >
-            {/* Name */}
             <div>
               <label>Name:</label>
               <input
@@ -194,24 +215,23 @@ function RegistrationForm() {
               {nameError && <div style={errorTextStyle}>{nameError}</div>}
             </div>
 
-            {/* Email */}
             <div>
               <label>Email:</label>
               <input
                 type="email"
                 name="email"
-                style={inputStyle(false)}
+                style={inputStyle(!!emailError)}
                 value={formData.email}
                 onChange={handleChange}
                 required
               />
+              {emailError && <div style={errorTextStyle}>{emailError}</div>}
             </div>
 
-            {/* Phone */}
             <div>
               <label>Phone No:</label>
               <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                <span style={{ whiteSpace: "nowrap" }}>+91</span>
+                <span>+91</span>
                 <input
                   type="tel"
                   name="phno"
@@ -225,7 +245,6 @@ function RegistrationForm() {
               {phoneError && <div style={errorTextStyle}>{phoneError}</div>}
             </div>
 
-            {/* Password */}
             <div>
               <label>Password:</label>
               <input
@@ -239,7 +258,6 @@ function RegistrationForm() {
               {passwordError && <div style={errorTextStyle}>{passwordError}</div>}
             </div>
 
-            {/* DOB */}
             <div>
               <label>Date of Birth:</label>
               <input
@@ -252,7 +270,6 @@ function RegistrationForm() {
               />
             </div>
 
-            {/* Gender */}
             <div>
               <label>Gender:</label>
               <select
@@ -270,7 +287,6 @@ function RegistrationForm() {
               {genderError && <div style={errorTextStyle}>{genderError}</div>}
             </div>
 
-            {/* Profession */}
             <div>
               <label>Profession:</label>
               <input
@@ -282,14 +298,12 @@ function RegistrationForm() {
               />
             </div>
 
-            {/* Error */}
             {error && (
               <div style={{ ...errorTextStyle, textAlign: "center" }}>
                 {error}
               </div>
             )}
 
-            {/* Submit Button */}
             <div style={{ textAlign: "center" }}>
               <button
                 type="submit"
@@ -309,7 +323,6 @@ function RegistrationForm() {
             </div>
           </form>
 
-          {/* Link */}
           <div style={{ textAlign: "center", fontSize: "14px", marginTop: "10px" }}>
             Already have an account?{" "}
             <Link to="/login" style={{ color: "#007bff" }}>
@@ -320,7 +333,6 @@ function RegistrationForm() {
       </div>
     </div>
   );
-
 }
 
 export default RegistrationForm;

@@ -16,13 +16,15 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Footer from "./header and footer/Footer";
+import { faRobot } from "@fortawesome/free-solid-svg-icons";
+
 
 function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState("");
 
-  const handleSendMessage = () => {
+  /*const handleSendMessage = () => {
     if (userInput.trim()) {
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -36,7 +38,51 @@ function Home() {
       }, 1000);
       setUserInput("");
     }
-  };
+  };*/
+  const handleSendMessage = async () => {
+  if (userInput.trim()) {
+    const userMessage = userInput;
+
+    // Show user message immediately
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { sender: "user", text: userMessage },
+    ]);
+    setUserInput("");
+
+    try {
+      const response = await fetch("http://localhost:5000/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: userMessage }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { sender: "bot", text: data.reply },
+      ]);
+    } catch (error) {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          sender: "bot",
+          text: "Sorry, I couldn't reach the server. Please try again later.",
+        },
+      ]);
+      console.error("Chat API error:", error);
+    }
+  }
+};
+
+
 
   return (
     <div>
@@ -206,6 +252,108 @@ function Home() {
               width: 90%;
             }
           }
+            .chatbot-icon {
+              position: fixed;
+              bottom: 30px;
+              right: 30px;
+              background-color: #6a1b9a;
+              color: #fff;
+              border: none;
+              border-radius: 50%;
+              padding: 14px 16px;
+              font-size: 20px;
+              cursor: pointer;
+              box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+              z-index: 999;
+              transition: background-color 0.3s;
+            }
+
+            .chatbot-icon:hover {
+              background-color: #53157a;
+            }
+
+            .chatbot-wrapper {
+  position: fixed;
+  bottom: 90px;
+  right: 30px;
+  z-index: 1000;
+}
+
+.chatbot-window {
+  width: 320px;
+  height: 450px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  animation: fadeIn 0.3s ease;
+}
+
+.chatbot-header {
+  background-color: #6a1b9a;
+  color: white;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.chatbot-header h4 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.chatbot-body {
+  flex-grow: 1;
+  padding: 10px;
+  overflow-y: auto;
+  font-size: 14px;
+  background-color: #f9f9f9;
+}
+
+.chatbot-input {
+  display: flex;
+  border-top: 1px solid #ddd;
+  padding: 10px;
+  background: #fff;
+}
+
+.chatbot-input input {
+  flex-grow: 1;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.chatbot-input button {
+  margin-left: 8px;
+  background-color: #6a1b9a;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Optional animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
         `}</style>
       </section>
 
@@ -215,7 +363,13 @@ function Home() {
           <div className="chatbot-window">
             <div className="chatbot-header">
               <h4>Chat with us</h4>
-              <button onClick={() => setIsChatOpen(false)}>×</button>
+              <button
+                className="chatbot-icon"
+                onClick={() => setIsChatOpen(!isChatOpen)}
+                title="Close Chat"
+              >
+                <FontAwesomeIcon icon={faRobot} />
+              </button>
             </div>
             <div className="chatbot-body">
               {messages.map((msg, index) => (
@@ -239,6 +393,7 @@ function Home() {
           <i className="fas fa-comment-alt"></i>
         </button>
       </div>
+
 
       <Footer />
     </div>
