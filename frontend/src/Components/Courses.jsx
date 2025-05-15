@@ -99,13 +99,42 @@ function Courses() {
   };
 
   const handlePaymentSubmit = (e) => {
-    e.preventDefault();
-    if (paymentDetails.cardName && paymentDetails.cardNumber && paymentDetails.expiry && paymentDetails.cvv) {
-      simulatePayment(selectedCourse, () => enrollCourse(selectedCourse.course_id));
-    } else {
-      toast.error("Please fill in all payment details");
-    }
-  };
+  e.preventDefault();
+  const { cardName, cardNumber, expiry, cvv } = paymentDetails;
+
+  // Basic field check
+  if (!cardName || !cardNumber || !expiry || !cvv) {
+    toast.error("Please fill in all payment details");
+    return;
+  }
+
+  // Strip spaces from card number
+  const rawCardNumber = cardNumber.replace(/\s/g, '');
+
+  // Regex validations
+  const cardNumberRegex = /^\d{16}$/;
+  const expiryRegex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+  const cvvRegex = /^\d{3,4}$/;
+
+  if (!cardNumberRegex.test(rawCardNumber)) {
+    toast.error("Card number must be 16 digits");
+    return;
+  }
+
+  if (!expiryRegex.test(expiry)) {
+    toast.error("Expiry must be in MM/YY format");
+    return;
+  }
+
+  if (!cvvRegex.test(cvv)) {
+    toast.error("CVV must be 3 or 4 digits");
+    return;
+  }
+
+  // If everything is valid, proceed
+  simulatePayment(selectedCourse, () => enrollCourse(selectedCourse.course_id));
+};
+
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
@@ -269,6 +298,7 @@ function Courses() {
           </div>
         </div>
       )}
+
 
       {/* Success Modal */}
       {showSuccessModal && (

@@ -165,7 +165,7 @@ const Course = () => {
         </InstructorDetails>
 
         <ActionButtons>
-          <BackButton onClick={() => navigate("/learnings")}>Go Back to Learnings</BackButton>
+          <BackButton onClick={() => navigate("/learnings")}>Go Back to Learning</BackButton>
           <Modal title="Note:" open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
             <p>Complete 100% of your course to take the Quiz.</p>
           </Modal>
@@ -289,7 +289,11 @@ const InstructorDetails = styled.div`
 
 const ActionButtons = styled.div`
   margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
+
 
 const BackButton = styled(Button)`
   background-color: #007bff;

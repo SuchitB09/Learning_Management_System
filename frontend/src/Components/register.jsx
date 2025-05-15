@@ -153,28 +153,34 @@ function RegistrationForm() {
           overflowY: "auto",
         }}
       >
+        {/* All content inside this container */}
         <div
           className="registration-container"
           style={{
             maxWidth: "600px",
             width: "100%",
+            maxHeight: "50px",
             backgroundColor: "#fff",
             borderRadius: "12px",
             padding: "30px",
             boxShadow: "0 5px 15px rgba(0,0,0,0.1)",
-            display: "flex",
+            display: "flow",
             flexDirection: "column",
-            gap: "16px",
+            gap: "10px",
           }}
         >
+          {/* Heading */}
           <h2 style={{ textAlign: "center", color: "#333", marginBottom: "20px" }}>
             User Registration
           </h2>
+
+          {/* Form */}
           <form
             onSubmit={handleSubmit}
             className="registration-form"
             style={{ display: "flex", flexDirection: "column", gap: "16px" }}
           >
+            {/* Name */}
             <div>
               <label>Name:</label>
               <input
@@ -187,6 +193,8 @@ function RegistrationForm() {
               />
               {nameError && <div style={errorTextStyle}>{nameError}</div>}
             </div>
+
+            {/* Email */}
             <div>
               <label>Email:</label>
               <input
@@ -198,6 +206,8 @@ function RegistrationForm() {
                 required
               />
             </div>
+
+            {/* Phone */}
             <div>
               <label>Phone No:</label>
               <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
@@ -214,6 +224,8 @@ function RegistrationForm() {
               </div>
               {phoneError && <div style={errorTextStyle}>{phoneError}</div>}
             </div>
+
+            {/* Password */}
             <div>
               <label>Password:</label>
               <input
@@ -226,6 +238,8 @@ function RegistrationForm() {
               />
               {passwordError && <div style={errorTextStyle}>{passwordError}</div>}
             </div>
+
+            {/* DOB */}
             <div>
               <label>Date of Birth:</label>
               <input
@@ -237,6 +251,8 @@ function RegistrationForm() {
                 required
               />
             </div>
+
+            {/* Gender */}
             <div>
               <label>Gender:</label>
               <select
@@ -253,6 +269,8 @@ function RegistrationForm() {
               </select>
               {genderError && <div style={errorTextStyle}>{genderError}</div>}
             </div>
+
+            {/* Profession */}
             <div>
               <label>Profession:</label>
               <input
@@ -263,11 +281,15 @@ function RegistrationForm() {
                 onChange={handleChange}
               />
             </div>
+
+            {/* Error */}
             {error && (
               <div style={{ ...errorTextStyle, textAlign: "center" }}>
                 {error}
               </div>
             )}
+
+            {/* Submit Button */}
             <div style={{ textAlign: "center" }}>
               <button
                 type="submit"
@@ -286,6 +308,8 @@ function RegistrationForm() {
               </button>
             </div>
           </form>
+
+          {/* Link */}
           <div style={{ textAlign: "center", fontSize: "14px", marginTop: "10px" }}>
             Already have an account?{" "}
             <Link to="/login" style={{ color: "#007bff" }}>
@@ -296,6 +320,7 @@ function RegistrationForm() {
       </div>
     </div>
   );
+
 }
 
 export default RegistrationForm;
